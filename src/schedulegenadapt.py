@@ -2,7 +2,6 @@
 
 #importing libraries
 import pandas as pd
-import openpyxl as xl
 import json
 
 def data_from_json():
