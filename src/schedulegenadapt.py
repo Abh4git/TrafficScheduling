@@ -53,7 +53,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import chart_studio.plotly as py
+#import chart_studio.plotly as py
 import plotly.figure_factory as ff
 import datetime
 import time
