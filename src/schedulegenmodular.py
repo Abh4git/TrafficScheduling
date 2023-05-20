@@ -2,7 +2,7 @@
 
 #importing libraries
 import pandas as pd
-import openpyxl as xl
+#import openpyxl as xl
 import json
 
 def data_from_json():
@@ -91,7 +91,7 @@ class Flow:
 
 
 #Flows Defined - Traffic flowing across the network
-flow1 = Flow(0, "es1", "es3", 69632,1, 100) # Id, sender, receiver, size, sequence, deadline
+flow1 = Flow(0, "es1", "es3",69632,1,100) # Id, sender, receiver, size, sequence, deadline
 flow2 = Flow(1, "es1", "es3",69632,2,200)
 flow3 = Flow(2, "es2", "es3",69632,3,100)
 flow4 = Flow(3, "es2", "es3",69632,4,200)
@@ -169,17 +169,19 @@ def checkfitness_and_calculate_makespan (parent_list,offspring_list,population_s
             # Check for flow and deadline here
             # if this flow then check if the total timeline is less than deadline,
             # if not do not include it in f_count / something like that
-            flow_i = flows[i]
-            flow_i.endToEndDelay = flow_i.get_endToEndDelay() + gen_t
-            if flow_i.endToEndDelay <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
-                print("Fit case, Flow i", flow_i.identifier,":",flow_i.endToEndDelay)
+            flow_i = flows[i-1]
+            #flow_i.endToEndDelay = f_count[i] + gen_t
+            if (f_count[i] + gen_t) <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
+                print("Fit case, Flow i", flow_i.identifier,":",f_count[i] + gen_t, ":", flow_i.deadline)
                 f_count[i] = f_count[i] + gen_t
-            l_count[gen_l] = l_count[gen_l] + gen_t
-            if l_count[gen_l] < f_count[i]:  # Check if
-                l_count[gen_l] = f_count[i]
-            elif l_count[gen_l] > f_count[i]:
-                #print ("test")
-                f_count[i] = l_count[gen_l]
+                l_count[gen_l] = l_count[gen_l] + gen_t
+                if l_count[gen_l] < f_count[i]:  # Check if
+                    l_count[gen_l] = f_count[i]
+                elif (l_count[gen_l] > f_count[i]   ):
+                    f_count[i] = l_count[gen_l]
+                #flow_i.endToEndDelay = f_count[i]
+                print("Special case: Flow i", flow_i.identifier, ":", f_count[i], "Deadline:", flow_i.deadline)
+            
 
             key_count[i] = key_count[i] + 1
             #print("End to end delay:",flow_i.endToEndDelay)
@@ -202,65 +204,6 @@ def checkfitness_and_calculate_makespan (parent_list,offspring_list,population_s
     return total_fitness, chrom_fitness, chrom_fit, total_chromosome , makespan
 
 
-def checkfitness_and_calculate_makespanV1 (parent_list,offspring_list,population_size, num_flows,num_links, process_time, flow_sequence):
-
-    """ fitness value (calculate makespan) """
-    total_chromosome = copy.deepcopy(parent_list) + copy.deepcopy(
-        offspring_list)  # parent and offspring chromosomes combination
-    chrom_fitness, chrom_fit = [], []
-    total_fitness = 1
-
-    for pop_size in range(population_size * 2):
-        f_keys = [j for j in range(num_flows)]
-
-        key_count = {key: 0 for key in f_keys}
-        f_count = {key: 0 for key in f_keys}
-        l_keys = [j + 1 for j in range(num_links)]
-        l_count = {key: 0 for key in l_keys}
-        for i in total_chromosome[pop_size]: # Some 60 Chromosomes - Each Chromosome is a potential solution
-            gen_t = int(process_time[i][key_count[i]]) #gets the time it takes for the processing
-            gen_l = int(flow_sequence[i][key_count[i]]) #gets the link associated with the processing/flow
-            # Check for flow and deadline here
-            # flow_sequence has flows
-            # i th flow_sequence we are using and jth key value used (Say Flow1, Segment 1)
-            # Check for all the flows in keys if they are
-
-            # i=Flow id, then if keycount[i] -
-            # if this flow then check if the total timeline is less than deadline,
-            # if not do not include it in f_count / something like that
-            # The entire solution or chromosome is usefless.
-            flow_i = flows[i]
-            flow_i.endToEndDelay = flow_i.get_endToEndDelay() + gen_t
-            if flow_i.endToEndDelay <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
-                print("Fit case, Flow i", flow_i.identifier,":",flow_i.endToEndDelay)
-                f_count[i] = f_count[i] + gen_t
-
-                l_count[gen_l] = l_count[gen_l] + gen_t
-
-
-
-            if l_count[gen_l] < f_count[i]:  # Check if
-                l_count[gen_l] = f_count[i]
-            elif l_count[gen_l] > f_count[i]:
-                #print ("test")
-                f_count[i] = l_count[gen_l]
-
-            key_count[i] = key_count[i] + 1
-
-        if (max(f_count.values())!=0):
-
-            makespan = max(f_count.values())
-            chrom_fitness.append(1 / makespan)
-            chrom_fit.append(makespan)
-            total_fitness = total_fitness + chrom_fitness[pop_size]
-        else:
-            positive_infinity = float('inf')
-            makespan = positive_infinity
-            chrom_fitness.append(1/makespan)
-            chrom_fit.append(makespan)
-            total_fitness = total_fitness + chrom_fitness[pop_size]
-    return total_fitness, chrom_fitness, chrom_fit, total_chromosome , makespan
-
 def plot_gantt_chart(num_links,num_flows,sequence_best, process_time,flow_sequence):
     l_keys = [j + 1 for j in range(num_links)]
     f_keys = [j for j in range(num_flows)]
@@ -272,20 +215,32 @@ def plot_gantt_chart(num_links,num_flows,sequence_best, process_time,flow_sequen
         gen_t = int(process_time[i][key_count[i]])
         gen_l = int(flow_sequence[i][key_count[i]])
         #if (gen_m != 0):
-        flow_i = flows[i]
-        flow_i.endToEndDelay = flow_i.get_endToEndDelay() + gen_t
+        
+        flow_i = flows[i-1]
+            #flow_i.endToEndDelay = f_count[i] + gen_t
+        if (f_count[i] + gen_t) <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
+            print("Fit case, Flow i", flow_i.identifier,":",f_count[i] + gen_t, ":", flow_i.deadline)
+            f_count[i] = f_count[i] + gen_t
+            l_count[gen_l] = l_count[gen_l] + gen_t
+            if l_count[gen_l] < f_count[i]:  # Check if
+                l_count[gen_l] = f_count[i]
+            elif (l_count[gen_l] > f_count[i]   ):
+                f_count[i] = l_count[gen_l]
+                #flow_i.endToEndDelay = f_count[i]
+            
+
         #if flow_i.endToEndDelay <= flow_i.deadline:
         #    print("Fit case, Flow i", flow_i.identifier, ":", flow_i.endToEndDelay)
-        f_count[i] = f_count[i] + gen_t
+        #f_count[i] = f_count[i] + gen_t
 
         #f_count[i] = f_count[i] + gen_t
 
-        l_count[gen_l] = l_count[gen_l] + gen_t
+        #l_count[gen_l] = l_count[gen_l] + gen_t
 
-        if l_count[gen_l] < f_count[i]:
-            l_count[gen_l] = f_count[i]
-        elif l_count[gen_l] > f_count[i]:
-            f_count[i] = l_count[gen_l]
+        #if l_count[gen_l] < f_count[i]:
+        #    l_count[gen_l] = f_count[i]
+        #elif l_count[gen_l] > f_count[i]:
+         #   f_count[i] = l_count[gen_l]
         #else:
             #j_count[i] =  j_count[i] + gen_t
             #m_count[gen_m] =  0
