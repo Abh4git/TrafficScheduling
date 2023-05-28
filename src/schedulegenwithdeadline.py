@@ -54,6 +54,17 @@ def json_to_df(json_data):
 
     return dict_data
 
+"""
+Fit chromosomes list
+"""
+
+class FitChromosome:
+    def __init__(self, chromosome, makespan, total_fitness, chrom_fit):
+        self.chromosome = chromosome
+        self.makespan = makespan
+        self.total_fitness = total_fitness
+        self.chrom_fit = chrom_fit
+
 
 class Flow:
     def __init__(self, identifier, sender, receiver, size, sequence, deadline):
@@ -159,7 +170,7 @@ def perform_mutations(offspring_list, mutation_rate, num_gene, num_mutation_jobs
 
 
 def checkfitness_and_calculate_makespan(parent_list, offspring_list, population_size, num_flows, num_links,
-                                        process_time, flow_sequence):
+                                        process_time, flow_sequence,fit_chromosomes_list):
     """ fitness value (calculate makespan) """
     total_chromosome = copy.deepcopy(parent_list) + copy.deepcopy(
         offspring_list)  # parent and offspring chromosomes combination
@@ -219,6 +230,9 @@ def checkfitness_and_calculate_makespan(parent_list, offspring_list, population_
         chrom_fitness.append(1 / makespan)
         chrom_fit.append(makespan)
         total_fitness = total_fitness + chrom_fitness[pop_size]
+        if (makespan>90 and makespan<=200):
+            fit_guy = FitChromosome(total_chromosome[pop_size],makespan,total_fitness,chrom_fit)
+            fit_chromosomes_list.append(fit_guy)
     return total_fitness, chrom_fitness, chrom_fit, total_chromosome, population_list_fit
 
 def calculate_fitness_for_chromosome(current_chromosome,process_time,key_count,flow_sequence,f_count,l_count,population_list_fit):
@@ -234,7 +248,6 @@ def calculate_fitness_for_chromosome(current_chromosome,process_time,key_count,f
         # if this flow then check if the total timeline is less than deadline,
         # if not do not include it in f_count / something like that
         flow_i = flows[i]
-        # flow_i.endToEndDelay = f_count[i] + gen_t
         if ((f_count[i] + gen_t) <= flow_i.deadline) and ((l_count[
                                                                gen_l] + gen_t) <= flow_i.deadline):  # for a valid schedule, the end to end delay for one flow should be within deadline
             # print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
@@ -253,23 +266,11 @@ def calculate_fitness_for_chromosome(current_chromosome,process_time,key_count,f
             population_list_fit.append(0)
 
         key_count[i] = key_count[i] + 1
-        # print("End to end delay:",flow_i.endToEndDelay)
-        # else:  # unfit case
-        #   continue
 
-        # print("Flow Count", f_count)
-        # print("Link count", l_count)
         if (max(f_count.values()) != 0):
-
             makespan = max(f_count.values())
-            #chrom_fitness.append(1 / makespan)
-            #chrom_fit.append(makespan)
-            #total_fitness = total_fitness + chrom_fitness[pop_size]
         else:
             makespan = 99999999999
-            #chrom_fitness.append(1 / makespan)
-            #chrom_fit.append(makespan)
-            #total_fitness = total_fitness + chrom_fitness[pop_size]
     return makespan
 
 def plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence):
@@ -350,6 +351,100 @@ def plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_seq
     fig.show()
     return final_data, df
 
+def plot_new_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence):
+    l_keys = [j + 1 for j in range(num_links)]
+    f_keys = [j for j in range(num_flows)]
+    key_count = {key: 0 for key in f_keys}
+    f_count = {key: 0 for key in f_keys}
+    l_count = {key: 0 for key in l_keys}
+    f_record = {}
+    for i in sequence_best.chromosome:
+        gen_t = int(process_time[i][key_count[i]])
+        gen_l = int(flow_sequence[i][key_count[i]])
+        # if (gen_m != 0):
+
+        #flow_i = flows[i - 1]
+        # flow_i.endToEndDelay = f_count[i] + gen_t
+        #if (f_count[i] + gen_t) <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
+        #   print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
+        f_count[i] = f_count[i] + gen_t
+        l_count[gen_l] = l_count[gen_l] + gen_t
+        if l_count[gen_l] < f_count[i]:  # Check if
+            l_count[gen_l] = f_count[i]
+        elif (l_count[gen_l] > f_count[i]):
+             f_count[i] = l_count[gen_l]
+
+        # if flow_i.endToEndDelay <= flow_i.deadline:
+        #    print("Fit case, Flow i", flow_i.identifier, ":", flow_i.endToEndDelay)
+        # f_count[i] = f_count[i] + gen_t
+
+        # f_count[i] = f_count[i] + gen_t
+
+        # l_count[gen_l] = l_count[gen_l] + gen_t
+
+        # if l_count[gen_l] < f_count[i]:
+        #    l_count[gen_l] = f_count[i]
+        # elif l_count[gen_l] > f_count[i]:
+        #   f_count[i] = l_count[gen_l]
+        # else:
+        # j_count[i] =  j_count[i] + gen_t
+        # m_count[gen_m] =  0
+
+        start_time = str(datetime.timedelta(
+            seconds=f_count[i] - process_time[i][key_count[i]]))  # convert seconds to hours, minutes and seconds
+        end_time = str(datetime.timedelta(seconds=f_count[i]))
+
+        f_record[(i, gen_l)] = [start_time, end_time]
+
+        key_count[i] = key_count[i] + 1
+    # print("J Record",j_record)
+    print ("f_record:", f_record )
+    df = []
+    for link_key in l_keys:
+        for flow_key in f_keys:
+            # if ( m!=3 & j!=0):
+            # print(j_record[j, m])
+            flow=flows[flow_key]
+            df.append(dict(Task='Link %s' % (link_key), Start='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][0])), \
+                           Finish='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][1])), Resource='Flow %s Deadline %d' % (flow_key + 1,flow.deadline)))
+
+    df_ = pd.DataFrame(df)
+    df_.Start = pd.to_datetime(df_['Start'])
+    df_.Finish = pd.to_datetime(df_['Finish'])
+    start = df_.Start.min()
+    end = df_.Finish.max()
+
+    df_.Start = df_.Start.apply(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S'))
+    df_.Finish = df_.Finish.apply(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S'))
+    print("Df", df)
+    data = df_.to_dict(orient='records')
+
+    final_data = {
+        'start': start.strftime('%Y-%m-%dT%H:%M:%S'),
+        'end': end.strftime('%Y-%m-%dT%H:%M:%S'),
+        'data': data}
+
+    fig = ff.create_gantt(df, index_col='Resource', show_colorbar=True, group_tasks=True, showgrid_x=True,
+                          title='Traffic Schedule')
+    fig.show()
+    return final_data, df
+
+def find_optimal_sequence(Tbest, fit_chromosomes ):
+
+    Tbest_now=Tbest
+    for chromosome in fit_chromosomes:
+        current_best_seq = chromosome
+        current_chromosome= chromosome
+        chom_fit_current = current_chromosome.makespan
+        if chom_fit_current < Tbest_now:
+            Tbest_now = chom_fit_current
+            best_sequence_now = copy.deepcopy(current_chromosome)
+            current_best_seq=best_sequence_now
+    if Tbest_now <= Tbest:
+        Tbest = Tbest_now
+        copy_sequence_best = copy.deepcopy(current_best_seq)
+    identified_best_sequence= copy_sequence_best
+    return Tbest, identified_best_sequence
 
 def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation_rate=0.2, mutation_selection_rate=0.2,
                      num_iteration=3000):
@@ -419,9 +514,13 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
                             break
 
         offspring_list = perform_mutations(offspring_list, mutation_rate, num_gene, num_mutation_jobs)
-
+        fit_chromosomes_list = []
         total_fitness, chrom_fitness, chrom_fit, total_chromosome,  population_list_fit = checkfitness_and_calculate_makespan(
-            parent_list, offspring_list, population_size, num_flows, num_links, process_time, flow_sequence)
+            parent_list, offspring_list, population_size, num_flows, num_links, process_time, flow_sequence, fit_chromosomes_list)
+        for fit in fit_chromosomes_list:
+            print("Fit Makespan:", fit.makespan)
+            print("Fit chrom fit:", fit.chrom_fit)
+
         #print ("Chromosome:",total_chromosome, "Makespan:", makespan  )
         """ Selection (roulette wheel approach) """
         #pk, qk = [], []
@@ -447,8 +546,8 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
             #            break
         #equence_now=None
         """ comparison """
-        for pop_size in range(population_size * 2):
-            if (population_list_fit [pop_size]==1):
+        """for pop_size in range(population_size * 2):
+            #if (population_list_fit [pop_size]==1):
                 #print("Compare inside -<")
                 chom_fit_current = chrom_fit[pop_size]
                 if chom_fit_current < Tbest_now:
@@ -456,10 +555,11 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
                     sequence_now = copy.deepcopy(total_chromosome[pop_size])
             #else:
             #    print("Compare outside ->")
-        if (Tbest_now <= Tbest and sequence_now != None ):
+        if (Tbest_now <= Tbest  ):
             Tbest = Tbest_now
             sequence_best = copy.deepcopy(sequence_now)
-
+        """
+        Tbest, sequence_best = find_optimal_sequence(Tbest,fit_chromosomes_list)
         makespan_record.append(Tbest)
 
     """ Results - Makespan """
@@ -478,7 +578,8 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
     print(makespan_record)
 
     """ plot gantt chart """
-    final_data, df = plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence)
+    final_data, df = plot_new_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence)
+        #plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence)
 
     # iplot(fig, filename='GA_job_shop_scheduling')
     print(final_data)
