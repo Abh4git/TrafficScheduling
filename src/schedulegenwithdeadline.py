@@ -106,12 +106,12 @@ class Flow:
 
 
 # Flows Defined - Traffic flowing across the network
-flow1 = Flow(0, "es1", "es3", 69632, 1, 100)  # Id, sender, receiver, size, sequence, deadline
-flow2 = Flow(1, "es1", "es3", 69632, 2, 200)
-flow3 = Flow(2, "es2", "es3", 69632, 3, 100)
-flow4 = Flow(3, "es2", "es3", 69632, 4, 200)
-flow5 = Flow(4, "es2", "es3", 69632, 5, 100)
-flow6 = Flow(5, "es2", "es3", 69632, 6, 200)
+flow1 = Flow(0, "es1", "es3", 69632, 1, 200)  # Id, sender, receiver, size, sequence, deadline
+flow2 = Flow(1, "es1", "es3", 69632, 2, 300)
+flow3 = Flow(2, "es2", "es3", 69632, 3, 200)
+flow4 = Flow(3, "es2", "es3", 69632, 4, 300)
+flow5 = Flow(4, "es2", "es3", 69632, 5, 200)
+flow6 = Flow(5, "es2", "es3", 69632, 6, 300)
 
 flows = [flow1, flow2, flow3, flow4, flow5, flow6]
 
@@ -230,7 +230,8 @@ def checkfitness_and_calculate_makespan(parent_list, offspring_list, population_
         chrom_fitness.append(1 / makespan)
         chrom_fit.append(makespan)
         total_fitness = total_fitness + chrom_fitness[pop_size]
-        if (makespan>90 and makespan<=200):
+        positive_infinity = float('inf')
+        if (makespan!= positive_infinity):
             fit_guy = FitChromosome(total_chromosome[pop_size],makespan,total_fitness,chrom_fit)
             fit_chromosomes_list.append(fit_guy)
     return total_fitness, chrom_fitness, chrom_fit, total_chromosome, population_list_fit
@@ -248,29 +249,61 @@ def calculate_fitness_for_chromosome(current_chromosome,process_time,key_count,f
         # if this flow then check if the total timeline is less than deadline,
         # if not do not include it in f_count / something like that
         flow_i = flows[i]
-        if ((f_count[i] + gen_t) <= flow_i.deadline) and ((l_count[
-                                                               gen_l] + gen_t) <= flow_i.deadline):  # for a valid schedule, the end to end delay for one flow should be within deadline
+        #if ((f_count[i] + gen_t) <= flow_i.deadline) and ((l_count[gen_l] + gen_t) <=flow_i.deadline):  # for a valid schedule, the end to end delay for one flow should be within deadline
             # print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
-            population_list_fit.append(1)
-            f_count[i] = f_count[i] + gen_t
-            l_count[gen_l] = l_count[gen_l] + gen_t
-            if l_count[gen_l] < f_count[i]:  # Check if
-                l_count[gen_l] = f_count[i]
-            elif (l_count[gen_l] > f_count[i]):
-                f_count[i] = l_count[gen_l]
+        #population_list_fit.append(1)
+        f_count[i] = f_count[i] + gen_t
+        l_count[gen_l] = l_count[gen_l] + gen_t
+        if l_count[gen_l] < f_count[i]:  # Check if
+            l_count[gen_l] = f_count[i]
+        elif (l_count[gen_l] > f_count[i]):
+            f_count[i] = l_count[gen_l]
             # flow_i.endToEndDelay = f_count[i]
             # print("Special case: Flow i", flow_i.identifier, ":", f_count[i], "Deadline:", flow_i.deadline)
 
-        else:
-
-            population_list_fit.append(0)
+        #else:
+            #f_count[i] = 0
+        #    population_list_fit.append(0)
 
         key_count[i] = key_count[i] + 1
 
-        if (max(f_count.values()) != 0):
+    # Check if the f_count.values fits as per deadline in flow
+    flow_i_pos=0
+    positive_infinity = float('inf')
+    for i in range(len(f_count)):
+        flow_i=flows[i]
+        if (f_count[i] <=flow_i.deadline):
             makespan = max(f_count.values())
         else:
-            makespan = 99999999999
+            makespan = positive_infinity
+            break
+        #flow_i_pos = flow_i_pos+1
+    #if (max(f_count.values()) != 0):
+
+    #else:
+    #    makespan = 99999999999
+    return makespan
+
+def calculate_fitness_for_chromosomev1(current_chromosome,process_time,key_count,flow_sequence,f_count,l_count,population_list_fit):
+    """
+    Seperate Fitness function per chromosome. Then we can
+    check for fitness and include only the fit ones as part of selection
+    Fitness here includes minimizing makespan while also meeting deadline for flow
+    """
+    for i in current_chromosome:
+        gen_t = int(process_time[i][key_count[i]])
+        gen_l = int(flow_sequence[i][key_count[i]])
+        f_count[i] = f_count[i] + gen_t
+        l_count[gen_l] = l_count[gen_l] + gen_t
+        if l_count[gen_l] < f_count[i]:  # Check if
+            l_count[gen_l] = f_count[i]
+        elif (l_count[gen_l] > f_count[i]):
+            f_count[i] = l_count[gen_l]
+
+        key_count[i] = key_count[i] + 1
+
+    makespan = max(f_count.values())
+
     return makespan
 
 def plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_sequence):
@@ -432,6 +465,9 @@ def plot_new_gantt_chart(num_links, num_flows, sequence_best, process_time, flow
 def find_optimal_sequence(Tbest, fit_chromosomes ):
 
     Tbest_now=Tbest
+    if (len(fit_chromosomes)==0):
+        print("No good schedules to fit the deadline found. Rethink deadlines")
+        return
     for chromosome in fit_chromosomes:
         current_best_seq = chromosome
         current_chromosome= chromosome
@@ -440,6 +476,7 @@ def find_optimal_sequence(Tbest, fit_chromosomes ):
             Tbest_now = chom_fit_current
             best_sequence_now = copy.deepcopy(current_chromosome)
             current_best_seq=best_sequence_now
+
     if Tbest_now <= Tbest:
         Tbest = Tbest_now
         copy_sequence_best = copy.deepcopy(current_best_seq)
