@@ -4,11 +4,14 @@
 import pandas as pd
 # import openpyxl as xl
 import json
+import time
 
-
+#Abhilash 2024 - Old case before 2024- line 13 uncommented, 14 commented, Line 119 uncommented - 121 -commented
+#Current Case - Create Schedule for wifi wireless case
 def data_from_json():
     # Opening JSON file
-    f = open('data.json')
+    #f = open('data.json') # Commented Abhilash 2024 old case
+    f = open('data_10links.json') # Added Abhilash 2024 new case 10 Links
 
     # returns JSON object as
     # a dictionary
@@ -113,9 +116,9 @@ flow4 = Flow(3, "es2", "es3", 69632, 4, 300)
 flow5 = Flow(4, "es2", "es3", 69632, 5, 200)
 flow6 = Flow(5, "es2", "es3", 69632, 6, 300)
 
-flows = [flow1, flow2, flow3, flow4, flow5, flow6]
+#flows = [flow1, flow2, flow3, flow4, flow5, flow6] #Case 1 - 4 flows old case commented Abhilash 2024
 
-
+flows = [flow1, flow2, flow3, flow4] #Added Abhilash 2024
 def prepare_initial_population(population_size, population_list, num_gene, num_flows):
     for i in range(population_size):
         nxm_random_num = list(np.random.permutation(num_gene))  # generate a random permutation of 0 to num_job*num_mc-1
@@ -253,11 +256,12 @@ def calculate_fitness_for_chromosome(current_chromosome,process_time,key_count,f
             # print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
         #population_list_fit.append(1)
         f_count[i] = f_count[i] + gen_t
-        l_count[gen_l] = l_count[gen_l] + gen_t
-        if l_count[gen_l] < f_count[i]:  # Check if
-            l_count[gen_l] = f_count[i]
-        elif (l_count[gen_l] > f_count[i]):
-            f_count[i] = l_count[gen_l]
+        if (gen_l != 0):
+            l_count[gen_l] = l_count[gen_l] + gen_t
+            if l_count[gen_l] < f_count[i]:  # Check if
+                l_count[gen_l] = f_count[i]
+            elif (l_count[gen_l] > f_count[i]):
+                f_count[i] = l_count[gen_l]
             # flow_i.endToEndDelay = f_count[i]
             # print("Special case: Flow i", flow_i.identifier, ":", f_count[i], "Deadline:", flow_i.deadline)
 
@@ -322,12 +326,13 @@ def plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_seq
         # flow_i.endToEndDelay = f_count[i] + gen_t
         #if (f_count[i] + gen_t) <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
         #   print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
-        f_count[i] = f_count[i] + gen_t
-        l_count[gen_l] = l_count[gen_l] + gen_t
-        if l_count[gen_l] < f_count[i]:  # Check if
-            l_count[gen_l] = f_count[i]
-        elif (l_count[gen_l] > f_count[i]):
-             f_count[i] = l_count[gen_l]
+        if (gen_l != 0):    # Abh 2024 - Changed to handle the link marked 0.
+            f_count[i] = f_count[i] + gen_t
+            l_count[gen_l] = l_count[gen_l] + gen_t
+            if l_count[gen_l] < f_count[i]:  # Check if
+                l_count[gen_l] = f_count[i]
+            elif (l_count[gen_l] > f_count[i]):
+                f_count[i] = l_count[gen_l]
 
         # if flow_i.endToEndDelay <= flow_i.deadline:
         #    print("Fit case, Flow i", flow_i.identifier, ":", flow_i.endToEndDelay)
@@ -348,8 +353,8 @@ def plot_gantt_chart(num_links, num_flows, sequence_best, process_time, flow_seq
         start_time = str(datetime.timedelta(
             seconds=f_count[i] - process_time[i][key_count[i]]))  # convert seconds to hours, minutes and seconds
         end_time = str(datetime.timedelta(seconds=f_count[i]))
-
-        f_record[(i, gen_l)] = [start_time, end_time]
+        if (gen_l!=0):
+            f_record[(i, gen_l)] = [start_time, end_time]
 
         key_count[i] = key_count[i] + 1
     # print("J Record",j_record)
@@ -400,12 +405,13 @@ def plot_new_gantt_chart(num_links, num_flows, sequence_best, process_time, flow
         # flow_i.endToEndDelay = f_count[i] + gen_t
         #if (f_count[i] + gen_t) <= flow_i.deadline:  # for a valid schedule, the end to end delay for one flow should be within deadline
         #   print("Fit case, Flow i", flow_i.identifier, ":", f_count[i] + gen_t, ":", flow_i.deadline)
-        f_count[i] = f_count[i] + gen_t
-        l_count[gen_l] = l_count[gen_l] + gen_t
-        if l_count[gen_l] < f_count[i]:  # Check if
-            l_count[gen_l] = f_count[i]
-        elif (l_count[gen_l] > f_count[i]):
-             f_count[i] = l_count[gen_l]
+        if (gen_l != 0): #Added Abhilash 2024 to handle link not in use
+            f_count[i] = f_count[i] + gen_t
+            l_count[gen_l] = l_count[gen_l] + gen_t
+            if l_count[gen_l] < f_count[i]:  # Check if
+               l_count[gen_l] = f_count[i]
+            elif (l_count[gen_l] > f_count[i]):
+               f_count[i] = l_count[gen_l]
 
         # if flow_i.endToEndDelay <= flow_i.deadline:
         #    print("Fit case, Flow i", flow_i.identifier, ":", flow_i.endToEndDelay)
@@ -436,11 +442,18 @@ def plot_new_gantt_chart(num_links, num_flows, sequence_best, process_time, flow
     for link_key in l_keys:
         for flow_key in f_keys:
             # if ( m!=3 & j!=0):
-            # print(j_record[j, m])
+            print("flow key",flow_key)
+            print("link key", link_key)
+            #if (flow_key!=0 and link_key!=0):
             flow=flows[flow_key]
-            df.append(dict(Task='Link %s' % (link_key), Start='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][0])), \
-                           Finish='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][1])), Resource='Flow %s Deadline %d' % (flow_key + 1,flow.deadline)))
-
+                #if (link_key!=0):
+                #if (f_record.keys(flow_key, link_key)):
+            try:
+                df.append(dict(Task='Link %s' % (link_key), Start='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][0])), \
+                               Finish='2020-02-01 %s' % (str(f_record[(flow_key, link_key)][1])), Resource='Flow %s Deadline %d' % (flow_key + 1,flow.deadline)))
+            except KeyError as error:
+                print("The given key doesn't exist in the dictionary")
+                continue
     df_ = pd.DataFrame(df)
     df_.Start = pd.to_datetime(df_['Start'])
     df_.Finish = pd.to_datetime(df_['Finish'])
@@ -509,6 +522,8 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
     population_list = []
     makespan_record = []
 
+    # Time - Start time
+    start_time = time.time()
     # Initial Population
     population_list = prepare_initial_population(population_size, population_list, num_gene, num_flows)
     print("Population List:", population_list)
@@ -598,13 +613,15 @@ def traffic_schedule(data_dict, population_size=30, crossover_rate=0.8, mutation
         """
         Tbest, sequence_best = find_optimal_sequence(Tbest,fit_chromosomes_list)
         makespan_record.append(Tbest)
+    end_time = time.time()
+    time_taken = end_time-start_time
 
     """ Results - Makespan """
 
     print("optimal sequence", sequence_best)
     print("optimal value:%f" % Tbest)
     print("\n")
-    # print('the elapsed time:%s'% (time.time() - start_time))
+    print('the elapsed time:%s'% (end_time - start_time))
 
     # %matplotlib inline
     plt.plot([i for i in range(len(makespan_record))], makespan_record, 'b')
