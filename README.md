@@ -31,6 +31,9 @@ Perform mutations (rearrangements) and check fitness
 Identifying the best schedule by checking makespan. The Shortest Makespan is considered best  
 ![image](https://github.com/user-attachments/assets/b5d1b91e-fecb-40ac-bdfe-3fdf63b86562)  
 
+Here is where we check deadline. Main rule here is deadline
+![image](https://github.com/user-attachments/assets/5e96e946-e092-43a1-bef5-e06e668cf839)
+
 
 
 
