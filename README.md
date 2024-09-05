@@ -5,7 +5,12 @@ Run the program schedulegenwithdeadline.py
 
 ![Resulting Schedule](schedule8Links.JPG)
 
-A brief description
+Overview of the approach 
+
+[Traffic_Scheduling-GeneticAlgoApproach.pdf](https://github.com/user-attachments/files/16885374/Traffic_Scheduling-GeneticAlgoApproach.pdf)
+
+A brief description of code structure
+
 
 Scheduling being an NPHard problem many methods have been applied.
 Genetic Algorithms, Metaheuristics all have found its advantages.
